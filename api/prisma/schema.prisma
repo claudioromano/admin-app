@@ -1,0 +1,247 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USUARIOS Y AUTENTICACIÓN
+// ============================================
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships     OrganizationMember[]
+  paymentAccounts PaymentAccount[]
+  refreshTokens   RefreshToken[]
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique @db.VarChar(500)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+}
+
+// ============================================
+// ORGANIZACIONES Y MEMBRESÍAS
+// ============================================
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members         OrganizationMember[]
+  clients         Client[]
+  invoices        Invoice[]
+  expenses        Expense[]
+  paymentAccounts OrganizationPaymentAccount[]
+}
+
+model OrganizationMember {
+  id             String     @id @default(uuid())
+  userId         String
+  organizationId String
+  role           MemberRole @default(MEMBER)
+  createdAt      DateTime   @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+// ============================================
+// CUENTAS DE COBRO/PAGO
+// ============================================
+
+model PaymentAccount {
+  id          String             @id @default(uuid())
+  userId      String
+  name        String
+  holder      String
+  description String?            @db.Text
+  alias       String?
+  type        PaymentAccountType
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  user          User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizations OrganizationPaymentAccount[]
+  invoices      Invoice[]
+
+  @@index([userId])
+}
+
+enum PaymentAccountType {
+  BANK
+  VIRTUAL_WALLET
+  CRYPTO
+  OTHER
+}
+
+model OrganizationPaymentAccount {
+  id               String   @id @default(uuid())
+  organizationId   String
+  paymentAccountId String
+  createdAt        DateTime @default(now())
+
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  paymentAccount PaymentAccount @relation(fields: [paymentAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, paymentAccountId])
+  @@index([organizationId])
+}
+
+// ============================================
+// CLIENTES
+// ============================================
+
+model Client {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String
+  company        String?
+  email          String?
+  phone          String?
+  notes          String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invoices     Invoice[]
+
+  @@index([organizationId])
+}
+
+// ============================================
+// FACTURAS EMITIDAS
+// ============================================
+
+model Invoice {
+  id               String        @id @default(uuid())
+  organizationId   String
+  clientId         String
+  paymentAccountId String?
+  number           String?
+  description      String?       @db.Text
+  amount           Decimal       @db.Decimal(12, 2)
+  date             DateTime
+  dueDate          DateTime?
+  status           InvoiceStatus @default(PENDING)
+  paidAt           DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  client         Client          @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  paymentAccount PaymentAccount? @relation(fields: [paymentAccountId], references: [id], onDelete: SetNull)
+  files          InvoiceFile[]
+
+  @@index([organizationId])
+  @@index([clientId])
+  @@index([status])
+  @@index([date])
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+model InvoiceFile {
+  id        String   @id @default(uuid())
+  invoiceId String
+  fileName  String
+  fileKey   String
+  fileSize  Int
+  mimeType  String
+  createdAt DateTime @default(now())
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+}
+
+// ============================================
+// GASTOS
+// ============================================
+
+model Expense {
+  id             String        @id @default(uuid())
+  organizationId String
+  description    String
+  amount         Decimal       @db.Decimal(12, 2)
+  date           DateTime
+  dueDate        DateTime?
+  type           ExpenseType
+  status         ExpenseStatus @default(PENDING)
+  paidAt         DateTime?
+  notes          String?       @db.Text
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  files        ExpenseFile[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([date])
+}
+
+enum ExpenseType {
+  FIXED
+  VARIABLE
+}
+
+enum ExpenseStatus {
+  PENDING
+  PAID
+  OVERDUE
+}
+
+model ExpenseFile {
+  id        String          @id @default(uuid())
+  expenseId String
+  fileName  String
+  fileKey   String
+  fileSize  Int
+  mimeType  String
+  type      ExpenseFileType
+  createdAt DateTime        @default(now())
+
+  expense Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+
+  @@index([expenseId])
+}
+
+enum ExpenseFileType {
+  INVOICE
+  RECEIPT
+  OTHER
+}
