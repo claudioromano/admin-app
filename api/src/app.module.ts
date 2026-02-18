@@ -5,6 +5,9 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { OrganizationsModule } from './modules/organizations/organizations.module';
 import { ClientsModule } from './modules/clients/clients.module';
+import { PaymentAccountsModule } from './modules/payment-accounts/payment-accounts.module';
+import { FilesModule } from './modules/files/files.module';
+import { InvoicesModule } from './modules/invoices/invoices.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -16,6 +19,9 @@ import { AppService } from './app.service';
     UsersModule,
     OrganizationsModule,
     ClientsModule,
+    PaymentAccountsModule,
+    FilesModule,
+    InvoicesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
