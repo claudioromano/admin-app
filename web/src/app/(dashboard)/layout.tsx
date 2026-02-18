@@ -1,25 +1,22 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import {
-  Navbar,
-  NavbarBrand,
-  NavbarContent,
-  NavbarItem,
-  Button,
-  Spinner,
-} from "@heroui/react";
+import { Spinner } from "@heroui/react";
 import { useAuth } from "@/lib/context/AuthContext";
+import { useOrganization } from "@/lib/context/OrganizationContext";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { Header } from "@/components/layout/Header";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { user, isLoading, logout } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+  const { isLoading: orgLoading } = useOrganization();
   const router = useRouter();
 
-  if (isLoading) {
+  if (authLoading || orgLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Spinner size="lg" />
@@ -32,29 +29,13 @@ export default function DashboardLayout({
     return null;
   }
 
-  const handleLogout = async () => {
-    await logout();
-    router.push("/login");
-  };
-
   return (
-    <div className="min-h-screen">
-      <Navbar maxWidth="full">
-        <NavbarBrand>
-          <p className="font-bold text-inherit">AdminApp</p>
-        </NavbarBrand>
-        <NavbarContent justify="end">
-          <NavbarItem>
-            <span className="text-sm text-default-500">{user.name}</span>
-          </NavbarItem>
-          <NavbarItem>
-            <Button color="danger" variant="flat" size="sm" onPress={handleLogout}>
-              Cerrar sesión
-            </Button>
-          </NavbarItem>
-        </NavbarContent>
-      </Navbar>
-      <main className="p-6">{children}</main>
+    <div className="flex h-screen overflow-hidden">
+      <Sidebar />
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <Header />
+        <main className="flex-1 overflow-auto p-6">{children}</main>
+      </div>
     </div>
   );
 }

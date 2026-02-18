@@ -27,12 +27,27 @@ export class AuthService {
     }
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
-    const user = await this.prisma.user.create({
-      data: {
-        email: dto.email,
-        password: hashedPassword,
-        name: dto.name,
-      },
+
+    // Create user and auto-create personal organization in a transaction
+    const user = await this.prisma.$transaction(async (tx) => {
+      const newUser = await tx.user.create({
+        data: {
+          email: dto.email,
+          password: hashedPassword,
+          name: dto.name,
+        },
+      });
+
+      await tx.organization.create({
+        data: {
+          name: `${dto.name}`,
+          members: {
+            create: { userId: newUser.id, role: 'OWNER' },
+          },
+        },
+      });
+
+      return newUser;
     });
 
     const tokens = await this.generateTokens(user.id, user.email);
