@@ -127,3 +127,61 @@ Desvincular"
 
   Todo protegido con JwtAuthGuard + OrganizationRoleGuard. El upload usa FileInterceptor (multer en
   memoria) + ParseFilePipe con MaxFileSizeValidator.
+
+### Fase 6: Facturas — Frontend completado                                                          
+                                                                                                    
+  Archivos nuevos creados                                                                           
+
+  Types y utilidades:
+
+  Archivo: types/invoice.ts
+  Contenido: Invoice, InvoiceFile, InvoicesPage, tipos de datos, CreateInvoiceData, UpdateInvoiceStatusData,INVOICE_STATUS_LABELS
+  ────────────────────────────────────────
+  Archivo: lib/utils/format.ts
+  Contenido: formatCurrency (ARS), formatDate (es-AR), toDateInput (ISO→YYYY-MM-DD), formatFileSize
+  ────────────────────────────────────────
+  Archivo: lib/api/invoices.ts
+  Contenido: listInvoices, getInvoice, createInvoice, updateInvoice, deleteInvoice, updateInvoiceStatus, uploadInvoiceFile, deleteInvoiceFile, getFileUrl
+
+  Rutas proxy Next.js:
+
+  ┌──────────────────────────────────┬───────────────────────────────────────────────────────────┐
+  │               Ruta               │                        Descripción                        │
+  ├──────────────────────────────────┼───────────────────────────────────────────────────────────┤
+  │ app/api/invoices/route.ts        │ CRUD completo: GET (lista + detalle), POST, PATCH, DELETE │
+  ├──────────────────────────────────┼───────────────────────────────────────────────────────────┤
+  │ app/api/invoices/status/route.ts │ PATCH para cambio de estado                               │
+  ├──────────────────────────────────┼───────────────────────────────────────────────────────────┤
+  │ app/api/invoices/files/route.ts  │ POST (multipart upload re-ensamblado con Blob) + DELETE   │
+  ├──────────────────────────────────┼───────────────────────────────────────────────────────────┤
+  │ app/api/files/route.ts           │ GET → retorna URL firmada de MinIO                        │
+  └──────────────────────────────────┴───────────────────────────────────────────────────────────┘
+
+  Componente:
+
+  Archivo: components/invoices/InvoiceStatusBadge.tsx
+  Descripción: Badge reutilizable con colores: warning/success/danger/default por estado
+
+  Páginas:
+
+  /dashboard/invoices (listado):
+  - Alerta amarilla clickeable con conteo de facturas pendientes (carga PENDING count por separado)
+  - Filtros combinables: estado (select), cliente (select), mes (<input type="month">) + botón
+  "Limpiar filtros"
+  - Tabla con columnas: #, cliente+empresa, monto formateado, fecha, vencimiento, estado badge,
+  acciones
+  - Filas pendientes con borde izquierdo amarillo, vencidas con borde rojo
+  - Modal create/edit con: selector de cliente, selector de cuenta de cobro vinculada a la org,
+  número, monto, fecha emisión + vencimiento, descripción
+  - Paginación
+  - Modal de confirmación de eliminación (advierte que elimina adjuntos)
+
+  /dashboard/invoices/[id] (detalle):
+  - Grid de datos: monto destacado, fechas, cuenta de cobro, fecha de cobro
+  - Sección de cambio de estado con botones contextuales (muestra solo los estados distintos al
+  actual)
+  - Sección de archivos adjuntos: upload via <input type="file"> oculto, lista con ícono por tipo
+  (imagen/PDF/otro), tamaño, fecha, botones "Ver / Descargar" (obtiene URL firmada y abre nueva
+  pestaña) y "Eliminar"
+  - Modal de edición con todos los campos
+  - Modal de confirmación de eliminación de factura
