@@ -8,6 +8,7 @@ import { ClientsModule } from './modules/clients/clients.module';
 import { PaymentAccountsModule } from './modules/payment-accounts/payment-accounts.module';
 import { FilesModule } from './modules/files/files.module';
 import { InvoicesModule } from './modules/invoices/invoices.module';
+import { ExpensesModule } from './modules/expenses/expenses.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -22,6 +23,7 @@ import { AppService } from './app.service';
     PaymentAccountsModule,
     FilesModule,
     InvoicesModule,
+    ExpensesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

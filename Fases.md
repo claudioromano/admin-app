@@ -149,3 +149,45 @@ Páginas:
 - Sección de archivos adjuntos: upload via `<input type="file">` oculto, lista con ícono por tipo (imagen/PDF/otro), tamaño, fecha, botones "Ver / Descargar" (obtiene URL firmada y abre nueva pestaña) y "Eliminar"
 - Modal de edición con todos los campos
 - Modal de confirmación de eliminación de factura
+
+### Fase 7: Expenses — Completada
+
+Resumen de todo lo creado:
+
+---
+
+**Backend (`api/src/modules/expenses/`)**
+
+- **Archivo:** `dto/create-expense.dto.ts`  
+  **Descripción:** Valida `description`, `amount`, `date`, `dueDate?`, `type` (`FIXED/VARIABLE`), `notes?`
+- **Archivo:** `dto/update-expense.dto.ts`  
+  **Descripción:** Todos los campos opcionales
+- **Archivo:** `dto/expense-filters.dto.ts`  
+  **Descripción:** Filtros `status`, `type`, `dateFrom`, `dateTo`, paginación
+- **Archivo:** `dto/update-expense-status.dto.ts`  
+  **Descripción:** `status` (`PENDING/PAID/OVERDUE`) + `paidAt?`
+- **Archivo:** `expenses.service.ts`  
+  **Descripción:** CRUD, `updateStatus` (setea/limpia `paidAt`), `addFile` (con `fileType`), `removeFile`
+- **Archivo:** `expenses.controller.ts`  
+  **Descripción:** Endpoints bajo `/organizations/:orgId/expenses`, upload con `@Body('fileType')` + validación del enum
+- **Archivo:** `expenses.module.ts`  
+  **Descripción:** Importa `FilesModule`
+- **Archivo:** `app.module.ts`  
+  **Descripción:** Agrega `ExpensesModule`
+
+**Frontend**
+
+- **Archivo:** `web/src/types/expense.ts`  
+  **Descripción:** Tipos `Expense`, `ExpenseFile`, `ExpensesPage`, labels para `status/type/fileType`
+- **Archivo:** `web/src/lib/api/expenses.ts`  
+  **Descripción:** Cliente con `listExpenses`, `getExpense`, `createExpense`, `updateExpense`, `deleteExpense`, `updateExpenseStatus`, `uploadExpenseFile`, `deleteExpenseFile`
+- **Archivo:** `web/src/app/api/expenses/route.ts`  
+  **Descripción:** Proxy `GET/POST/PATCH/DELETE`
+- **Archivo:** `web/src/app/api/expenses/status/route.ts`  
+  **Descripción:** Proxy `PATCH` de estado
+- **Archivo:** `web/src/app/api/expenses/files/route.ts`  
+  **Descripción:** Proxy `POST/DELETE` de archivos (incluye `fileType` en el `FormData` upstream)
+- **Archivo:** `web/src/app/(dashboard)/dashboard/expenses/page.tsx`  
+  **Descripción:** Listado con filtros por estado/tipo/mes, alerta de pendientes, tabla con badges coloreados, modal de creación
+- **Archivo:** `web/src/app/(dashboard)/dashboard/expenses/[id]/page.tsx`  
+  **Descripción:** Detalle con cambio de estado, adjuntos categorizados (selector `INVOICE/RECEIPT/OTHER` antes de subir), proxy para descarga sin tocar MinIO
