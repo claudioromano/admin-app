@@ -1,5 +1,6 @@
 import { Injectable, Inject, OnModuleInit, Logger } from '@nestjs/common';
 import * as Minio from 'minio';
+import { Readable } from 'stream';
 import { MINIO_CLIENT } from './minio.provider';
 
 @Injectable()
@@ -36,12 +37,13 @@ export class FilesService implements OnModuleInit {
     });
   }
 
-  async getSignedUrl(key: string, expirySeconds = 3600): Promise<string> {
-    return this.minioClient.presignedGetObject(
-      this.bucket,
-      key,
-      expirySeconds,
-    );
+  async getFileStream(key: string): Promise<{ stream: Readable; contentType: string; size: number }> {
+    const stat = await this.minioClient.statObject(this.bucket, key);
+    const stream = await this.minioClient.getObject(this.bucket, key);
+    const contentType =
+      (stat.metaData?.['content-type'] as string | undefined) ||
+      'application/octet-stream';
+    return { stream, contentType, size: stat.size };
   }
 
   async deleteFile(key: string): Promise<void> {

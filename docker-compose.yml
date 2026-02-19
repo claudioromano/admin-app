@@ -54,6 +54,11 @@ services:
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       MINIO_BUCKET: adminapp
       MINIO_USE_SSL: "false"
+      # Hostname público por el que el BROWSER accede a MinIO.
+      # Difiere de MINIO_ENDPOINT (hostname interno Docker) para que las
+      # URLs firmadas (presigned) sean accesibles desde el navegador.
+      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-localhost}
+      MINIO_PUBLIC_PORT: ${MINIO_PUBLIC_PORT:-9000}
       CORS_ORIGIN: http://localhost:3000
     ports:
       - "4000:4000"

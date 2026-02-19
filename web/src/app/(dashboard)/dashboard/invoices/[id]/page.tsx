@@ -59,7 +59,6 @@ export default function InvoiceDetailPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
-  const [openingFileId, setOpeningFileId] = useState<string | null>(null);
 
   // ── Modal eliminar factura ─────────────────────────────────────────────
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -197,16 +196,9 @@ export default function InvoiceDetailPage() {
     }
   };
 
-  const handleOpenFile = async (file: InvoiceFile) => {
-    setOpeningFileId(file.id);
-    try {
-      const url = await invoicesApi.getFileUrl(file.fileKey);
-      window.open(url, "_blank", "noopener,noreferrer");
-    } catch {
-      alert("No se pudo obtener la URL del archivo");
-    } finally {
-      setOpeningFileId(null);
-    }
+  const handleOpenFile = (file: InvoiceFile) => {
+    const qs = new URLSearchParams({ key: file.fileKey, filename: file.fileName });
+    window.open(`/api/files?${qs.toString()}`, "_blank", "noopener,noreferrer");
   };
 
   // ── Eliminar factura ───────────────────────────────────────────────────
@@ -437,10 +429,9 @@ export default function InvoiceDetailPage() {
                   <button
                     type="button"
                     onClick={() => handleOpenFile(file)}
-                    disabled={openingFileId === file.id}
-                    className="text-xs text-primary hover:underline disabled:opacity-50"
+                    className="text-xs text-primary hover:underline"
                   >
-                    {openingFileId === file.id ? "Abriendo..." : "Ver / Descargar"}
+                    Ver / Descargar
                   </button>
                   <button
                     type="button"

@@ -138,9 +138,3 @@ export async function deleteInvoiceFile(
   }
 }
 
-export async function getFileUrl(key: string): Promise<string> {
-  const res = await fetch(`/api/files?key=${encodeURIComponent(key)}`);
-  const json: ApiResponse<{ url: string }> = await res.json();
-  if (!res.ok) throw new Error('Error al obtener URL del archivo');
-  return json.data!.url;
-}
