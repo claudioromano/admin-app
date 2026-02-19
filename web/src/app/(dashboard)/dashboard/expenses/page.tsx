@@ -14,6 +14,8 @@ import {
 } from "@/types/expense";
 import * as expensesApi from "@/lib/api/expenses";
 import { formatCurrency, formatDate } from "@/lib/utils/format";
+import { useToast } from "@/lib/context/ToastContext";
+import { SkeletonTable } from "@/components/ui/Skeleton";
 
 type ExpenseStatusFilter = ExpenseStatus | "";
 type ExpenseTypeFilter = ExpenseType | "";
@@ -38,6 +40,7 @@ const EMPTY_FORM: CreateExpenseData & { dueDate: string } = {
 export default function ExpensesPage() {
   const router = useRouter();
   const { currentOrg } = useOrganization();
+  const { showToast } = useToast();
 
   // ── Listado ────────────────────────────────────────────────────────────
   const [page, setPage] = useState(1);
@@ -46,7 +49,6 @@ export default function ExpensesPage() {
   const [monthFilter, setMonthFilter] = useState("");
   const [result, setResult] = useState<ExpensesPageData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
 
   // ── Pendientes ─────────────────────────────────────────────────────────
   const [pendingTotal, setPendingTotal] = useState<number | null>(null);
@@ -60,7 +62,6 @@ export default function ExpensesPage() {
   const loadExpenses = useCallback(async () => {
     if (!currentOrg) return;
     setIsLoading(true);
-    setError("");
     try {
       const range = monthToRange(monthFilter);
       const data = await expensesApi.listExpenses(currentOrg.id, {
@@ -72,11 +73,14 @@ export default function ExpensesPage() {
       });
       setResult(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al cargar gastos");
+      showToast(
+        err instanceof Error ? err.message : "Error al cargar gastos",
+        "error"
+      );
     } finally {
       setIsLoading(false);
     }
-  }, [currentOrg, page, statusFilter, typeFilter, monthFilter]);
+  }, [currentOrg, page, statusFilter, typeFilter, monthFilter, showToast]);
 
   const loadPendingTotal = useCallback(async () => {
     if (!currentOrg) return;
@@ -246,15 +250,34 @@ export default function ExpensesPage() {
       </div>
 
       {/* ── Tabla ──────────────────────────────────────────────────────────── */}
-      {error && <p className="text-danger text-sm mb-3">{error}</p>}
-
       {isLoading ? (
-        <p className="text-default-500 text-sm">Cargando...</p>
+        <SkeletonTable rows={5} cols={6} />
       ) : result?.items.length === 0 ? (
-        <div className="rounded-lg border border-default-200 p-8 text-center">
-          <p className="text-default-400">
-            No hay gastos con los filtros seleccionados.
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="text-5xl mb-4">💸</div>
+          <h3 className="text-lg font-semibold mb-1">
+            {statusFilter || typeFilter || monthFilter
+              ? "Sin resultados"
+              : "Todavía no hay gastos"}
+          </h3>
+          <p className="text-sm text-default-500 mb-4">
+            {statusFilter || typeFilter || monthFilter
+              ? "No hay gastos con los filtros seleccionados."
+              : "Empezá registrando tu primer gasto."}
           </p>
+          {!statusFilter && !typeFilter && !monthFilter && (
+            <button
+              type="button"
+              onClick={() => {
+                setForm(EMPTY_FORM);
+                setFormError("");
+                setShowModal(true);
+              }}
+              className="rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-primary/90"
+            >
+              + Nuevo gasto
+            </button>
+          )}
         </div>
       ) : (
         <div className="rounded-lg border border-default-200 overflow-hidden">

@@ -12,6 +12,8 @@ import { formatCurrency, formatDate, formatFileSize, toDateInput } from "@/lib/u
 import * as invoicesApi from "@/lib/api/invoices";
 import * as clientsApi from "@/lib/api/clients";
 import * as paymentAccountsApi from "@/lib/api/payment-accounts";
+import { useToast } from "@/lib/context/ToastContext";
+import { SkeletonDetail } from "@/components/ui/Skeleton";
 
 // Estados a los que se puede cambiar manualmente
 const STATUS_TRANSITIONS: { status: InvoiceStatus; label: string; style: string }[] = [
@@ -25,6 +27,7 @@ export default function InvoiceDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { currentOrg } = useOrganization();
+  const { showToast } = useToast();
   const invoiceId = params.id as string;
 
   // ── Datos ──────────────────────────────────────────────────────────────
@@ -132,6 +135,7 @@ export default function InvoiceDetailPage() {
       });
       setInvoice({ ...invoice, ...updated, files: invoice.files });
       setIsEditing(false);
+      showToast("Factura actualizada", "success");
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Error al guardar");
     } finally {
@@ -151,6 +155,7 @@ export default function InvoiceDetailPage() {
         paidAt: status === "PAID" ? new Date().toISOString() : undefined,
       });
       setInvoice((prev) => prev ? { ...prev, ...updated, files: prev.files } : prev);
+      showToast(`Estado cambiado a ${INVOICE_STATUS_LABELS[status]}`, "success");
     } catch (err) {
       setStatusError(err instanceof Error ? err.message : "Error al cambiar estado");
     } finally {
@@ -172,6 +177,7 @@ export default function InvoiceDetailPage() {
       setInvoice((prev) =>
         prev ? { ...prev, files: [newFile, ...(prev.files ?? [])] } : prev,
       );
+      showToast("Archivo adjuntado correctamente", "success");
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "Error al subir archivo");
     } finally {
@@ -189,8 +195,12 @@ export default function InvoiceDetailPage() {
           ? { ...prev, files: prev.files?.filter((f) => f.id !== fileId) }
           : prev,
       );
+      showToast("Archivo eliminado", "success");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Error al eliminar archivo");
+      showToast(
+        err instanceof Error ? err.message : "Error al eliminar archivo",
+        "error"
+      );
     } finally {
       setDeletingFileId(null);
     }
@@ -210,7 +220,10 @@ export default function InvoiceDetailPage() {
       await invoicesApi.deleteInvoice(currentOrg.id, invoice.id);
       router.push("/dashboard/invoices");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Error al eliminar");
+      showToast(
+        err instanceof Error ? err.message : "Error al eliminar",
+        "error"
+      );
       setIsDeleting(false);
     }
   };
@@ -222,7 +235,7 @@ export default function InvoiceDetailPage() {
   }
 
   if (isLoading) {
-    return <p className="text-default-500">Cargando...</p>;
+    return <SkeletonDetail />;
   }
 
   if (error || !invoice) {

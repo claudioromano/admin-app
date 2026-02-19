@@ -16,6 +16,8 @@ import {
 } from "@/types/expense";
 import { formatCurrency, formatDate, formatFileSize, toDateInput } from "@/lib/utils/format";
 import * as expensesApi from "@/lib/api/expenses";
+import { useToast } from "@/lib/context/ToastContext";
+import { SkeletonDetail } from "@/components/ui/Skeleton";
 
 // Estados a los que se puede cambiar manualmente
 const STATUS_TRANSITIONS: { status: ExpenseStatus; label: string; style: string }[] = [
@@ -34,6 +36,7 @@ export default function ExpenseDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { currentOrg } = useOrganization();
+  const { showToast } = useToast();
   const expenseId = params.id as string;
 
   // ── Datos ──────────────────────────────────────────────────────────────
@@ -121,6 +124,7 @@ export default function ExpenseDetailPage() {
       });
       setExpense({ ...expense, ...updated, files: expense.files });
       setIsEditing(false);
+      showToast("Gasto actualizado", "success");
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Error al guardar");
     } finally {
@@ -144,6 +148,7 @@ export default function ExpenseDetailPage() {
         },
       );
       setExpense((prev) => (prev ? { ...prev, ...updated, files: prev.files } : prev));
+      showToast(`Estado cambiado a ${EXPENSE_STATUS_LABELS[status]}`, "success");
     } catch (err) {
       setStatusError(err instanceof Error ? err.message : "Error al cambiar estado");
     } finally {
@@ -170,6 +175,7 @@ export default function ExpenseDetailPage() {
       setExpense((prev) =>
         prev ? { ...prev, files: [newFile, ...(prev.files ?? [])] } : prev,
       );
+      showToast("Archivo adjuntado correctamente", "success");
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "Error al subir archivo");
     } finally {
@@ -188,7 +194,10 @@ export default function ExpenseDetailPage() {
           : prev,
       );
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Error al eliminar archivo");
+      showToast(
+        err instanceof Error ? err.message : "Error al eliminar archivo",
+        "error"
+      );
     } finally {
       setDeletingFileId(null);
     }
@@ -208,7 +217,10 @@ export default function ExpenseDetailPage() {
       await expensesApi.deleteExpense(currentOrg.id, expense.id);
       router.push("/dashboard/expenses");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Error al eliminar");
+      showToast(
+        err instanceof Error ? err.message : "Error al eliminar",
+        "error"
+      );
       setIsDeleting(false);
     }
   };
@@ -220,7 +232,7 @@ export default function ExpenseDetailPage() {
   }
 
   if (isLoading) {
-    return <p className="text-default-500">Cargando...</p>;
+    return <SkeletonDetail />;
   }
 
   if (error || !expense) {

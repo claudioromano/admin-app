@@ -13,6 +13,8 @@ import { formatCurrency, formatDate, toDateInput } from "@/lib/utils/format";
 import * as invoicesApi from "@/lib/api/invoices";
 import * as clientsApi from "@/lib/api/clients";
 import * as paymentAccountsApi from "@/lib/api/payment-accounts";
+import { useToast } from "@/lib/context/ToastContext";
+import { SkeletonTable } from "@/components/ui/Skeleton";
 
 const STATUSES: InvoiceStatus[] = ["PENDING", "PAID", "OVERDUE", "CANCELLED"];
 
@@ -28,11 +30,11 @@ const EMPTY_FORM = {
 
 export default function InvoicesPage() {
   const { currentOrg } = useOrganization();
+  const { showToast } = useToast();
 
   // ── Lista ──────────────────────────────────────────────────────────────
   const [data, setData] = useState<InvoicesPageData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
   const [page, setPage] = useState(1);
 
   // ── Filtros ────────────────────────────────────────────────────────────
@@ -77,7 +79,6 @@ export default function InvoicesPage() {
   const loadInvoices = useCallback(async () => {
     if (!currentOrg) return;
     setIsLoading(true);
-    setError("");
     try {
       const range = monthToRange(filterMonth);
       const result = await invoicesApi.listInvoices(currentOrg.id, {
@@ -88,11 +89,14 @@ export default function InvoicesPage() {
       });
       setData(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al cargar");
+      showToast(
+        err instanceof Error ? err.message : "Error al cargar facturas",
+        "error"
+      );
     } finally {
       setIsLoading(false);
     }
-  }, [currentOrg, page, filterStatus, filterClientId, filterMonth]);
+  }, [currentOrg, page, filterStatus, filterClientId, filterMonth, showToast]);
 
   const loadSupportData = useCallback(async () => {
     if (!currentOrg) return;
@@ -176,11 +180,15 @@ export default function InvoicesPage() {
     setIsDeleting(true);
     try {
       await invoicesApi.deleteInvoice(currentOrg.id, deletingInvoice.id);
+      showToast("Factura eliminada", "success");
       setDeletingInvoice(null);
       await loadInvoices();
       await loadSupportData();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Error al eliminar");
+      showToast(
+        err instanceof Error ? err.message : "Error al eliminar",
+        "error"
+      );
     } finally {
       setIsDeleting(false);
     }
@@ -303,16 +311,9 @@ export default function InvoicesPage() {
         )}
       </div>
 
-      {/* ── Error ────────────────────────────────────────────────────────── */}
-      {error && (
-        <div className="mb-4 rounded-lg bg-danger-50 p-3 text-sm text-danger">
-          {error}
-        </div>
-      )}
-
       {/* ── Tabla ────────────────────────────────────────────────────────── */}
       {isLoading ? (
-        <p className="text-default-500">Cargando...</p>
+        <SkeletonTable rows={5} cols={7} />
       ) : data && data.items.length > 0 ? (
         <>
           <div className="overflow-x-auto">
@@ -436,11 +437,26 @@ export default function InvoicesPage() {
           )}
         </>
       ) : (
-        <p className="text-default-500">
-          {hasFilters
-            ? "No hay facturas con los filtros aplicados."
-            : "No hay facturas aún. Creá la primera."}
-        </p>
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="text-5xl mb-4">📄</div>
+          <h3 className="text-lg font-semibold mb-1">
+            {hasFilters ? "Sin resultados" : "Todavía no hay facturas"}
+          </h3>
+          <p className="text-sm text-default-500 mb-4">
+            {hasFilters
+              ? "No hay facturas con los filtros aplicados."
+              : "Empezá creando tu primera factura."}
+          </p>
+          {!hasFilters && (
+            <button
+              type="button"
+              onClick={openCreateForm}
+              className="rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-primary/90"
+            >
+              + Nueva factura
+            </button>
+          )}
+        </div>
       )}
 
       {/* ── Modal crear/editar ────────────────────────────────────────────── */}

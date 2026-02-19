@@ -91,4 +91,73 @@ export class OrganizationsService {
 
     await this.prisma.organization.delete({ where: { id } });
   }
+
+  async getSummary(organizationId: string) {
+    const [
+      invoiceAggregate,
+      pendingInvoices,
+      expenseAggregate,
+      pendingExpenses,
+      recentInvoices,
+      recentExpenses,
+    ] = await Promise.all([
+      // Facturas por cobrar (PENDING + OVERDUE): count y total
+      this.prisma.invoice.aggregate({
+        where: { organizationId, status: { in: ['PENDING', 'OVERDUE'] } },
+        _count: true,
+        _sum: { amount: true },
+      }),
+      // Top 5 facturas por cobrar ordenadas por vencimiento
+      this.prisma.invoice.findMany({
+        where: { organizationId, status: { in: ['PENDING', 'OVERDUE'] } },
+        orderBy: [{ dueDate: 'asc' }, { date: 'asc' }],
+        take: 5,
+        include: {
+          client: { select: { id: true, name: true, company: true } },
+        },
+      }),
+      // Gastos pendientes de pago: count y total
+      this.prisma.expense.aggregate({
+        where: { organizationId, status: 'PENDING' },
+        _count: true,
+        _sum: { amount: true },
+      }),
+      // Top 5 gastos pendientes ordenados por vencimiento
+      this.prisma.expense.findMany({
+        where: { organizationId, status: 'PENDING' },
+        orderBy: [{ dueDate: 'asc' }, { date: 'asc' }],
+        take: 5,
+      }),
+      // Últimas 5 facturas (cualquier estado)
+      this.prisma.invoice.findMany({
+        where: { organizationId },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        include: {
+          client: { select: { id: true, name: true, company: true } },
+        },
+      }),
+      // Últimos 5 gastos (cualquier estado)
+      this.prisma.expense.findMany({
+        where: { organizationId },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+      }),
+    ]);
+
+    return {
+      invoices: {
+        pendingCount: invoiceAggregate._count,
+        pendingAmount: invoiceAggregate._sum.amount?.toString() ?? '0',
+        pendingList: pendingInvoices,
+      },
+      expenses: {
+        pendingCount: expenseAggregate._count,
+        pendingAmount: expenseAggregate._sum.amount?.toString() ?? '0',
+        pendingList: pendingExpenses,
+      },
+      recentInvoices,
+      recentExpenses,
+    };
+  }
 }

@@ -26,6 +26,7 @@ import {
 import { useOrganization } from "@/lib/context/OrganizationContext";
 import { OrganizationMember, MemberRole } from "@/types/organization";
 import * as orgsApi from "@/lib/api/organizations";
+import { useToast } from "@/lib/context/ToastContext";
 
 const roleColors: Record<MemberRole, "primary" | "secondary" | "success" | "default"> = {
   OWNER: "primary",
@@ -43,6 +44,7 @@ const roleLabels: Record<MemberRole, string> = {
 
 export default function SettingsPage() {
   const { currentOrg } = useOrganization();
+  const { showToast } = useToast();
   const [members, setMembers] = useState<OrganizationMember[]>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(true);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -91,7 +93,10 @@ export default function SettingsPage() {
       await orgsApi.updateMemberRole(currentOrg.id, memberId, role);
       await loadMembers();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Error al cambiar rol");
+      showToast(
+        err instanceof Error ? err.message : "Error al cambiar rol",
+        "error"
+      );
     }
   };
 
@@ -102,7 +107,10 @@ export default function SettingsPage() {
       await orgsApi.removeMember(currentOrg.id, memberId);
       await loadMembers();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Error al remover miembro");
+      showToast(
+        err instanceof Error ? err.message : "Error al remover miembro",
+        "error"
+      );
     }
   };
 

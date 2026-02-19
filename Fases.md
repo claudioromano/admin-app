@@ -191,3 +191,99 @@ Resumen de todo lo creado:
   **Descripción:** Listado con filtros por estado/tipo/mes, alerta de pendientes, tabla con badges coloreados, modal de creación
 - **Archivo:** `web/src/app/(dashboard)/dashboard/expenses/[id]/page.tsx`  
   **Descripción:** Detalle con cambio de estado, adjuntos categorizados (selector `INVOICE/RECEIPT/OTHER` antes de subir), proxy para descarga sin tocar MinIO
+
+### Fase 8: Home y Vista Operativa — Completada
+
+**Backend**
+
+- **Archivo:** `organizations.service.ts`  
+  **Cambios:** Nuevo método `getSummary(organizationId)` con 6 queries en paralelo usando `Promise.all`:
+  - `invoiceAggregate`: `count + sum` de facturas con status `PENDING | OVERDUE`
+  - `pendingInvoices`: top 5 facturas por cobrar, ordenadas por `dueDate asc` (más urgentes primero), incluye datos del cliente
+  - `expenseAggregate`: `count + sum` de gastos con status `PENDING`
+  - `pendingExpenses`: top 5 gastos pendientes, ordenados por `dueDate asc`
+  - `recentInvoices`: últimas 5 facturas (cualquier estado), por `createdAt desc`
+  - `recentExpenses`: últimos 5 gastos (cualquier estado), por `createdAt desc`
+- **Archivo:** `organizations.controller.ts`  
+  **Cambios:** Nuevo endpoint `GET /organizations/:id/summary` protegido con `JwtAuthGuard + OrganizationRoleGuard`
+
+**Frontend**
+
+- **Archivo:** `web/src/app/api/organizations/summary/route.ts`  
+  **Cambios:** Proxy `GET /api/organizations/summary?orgId=` -> `GET /organizations/:orgId/summary`
+- **Archivo:** `web/src/app/(dashboard)/dashboard/page.tsx`  
+  **Cambios:** Home completamente reemplazada con secciones:
+  - **Accesos rápidos:** Botones `+ Nueva factura` (primary), `+ Nuevo gasto` (dark), `+ Nuevo cliente` (outline), `Ver facturas`, `Ver gastos`
+  - **Cards de resumen:** "Facturas por cobrar" (monto + count, clickeable), "Gastos pendientes de pago" (monto + count, clickeable), "Balance estimado" (cobros - gastos, verde/rojo según signo)
+  - **Facturas pendientes:** Lista de hasta 5, ordenadas por urgencia, con cliente, vencimiento, badge de estado y monto. Borde izquierdo rojo para vencidas, amarillo para pendientes
+  - **Gastos pendientes:** Lista de hasta 5, ordenados por vencimiento, con descripción, tipo, vencimiento, badge y monto
+  - **Actividad reciente:** Feed combinado de facturas + gastos (últimas 8 entradas), ordenado por `createdAt desc`, con ícono, badge de estado y monto, clickeable al detalle
+
+### Fase 9: Hardening + UX — Completada
+
+Resumen de todo lo implementado:
+
+**Backend**
+
+Rate Limiting:
+
+- **Archivo:** `app.module.ts`  
+  **Cambios:** Importa `ThrottlerModule` con límite de `10 req/min` por IP
+- **Archivo:** `auth.controller.ts`  
+  **Cambios:** Aplica `ThrottlerGuard` en endpoints de auth:
+  - `/auth/register`: `5 intentos/min`
+  - `/auth/login`: `10 intentos/min`
+
+Seed Script:
+
+- **Archivo:** `api/prisma/seed.ts`  
+  **Cambios:** Script completo con datos de prueba:
+  - Usuario: `admin@adminapp.dev / Admin1234!`
+  - Organización: `"Estudio Demo SRL"`
+  - 1 cuenta bancaria vinculada
+  - 4 clientes con datos variados
+  - 6 facturas (`PAID`, `PENDING`, `OVERDUE`, `CANCELLED`)
+  - 7 gastos (`PAID`, `PENDING`, `OVERDUE`, con distintos tipos)
+- **Archivo:** `api/tsconfig.seed.json`  
+  **Cambios:** Override de `tsconfig` para ejecutar seed como CommonJS
+- **Archivo:** `api/package.json`  
+  **Cambios:** Script `"seed"` y sección `"prisma": { "seed": "..." }`
+
+Para ejecutar el seed:
+
+```bash
+cd api && npm run seed
+```
+
+**Frontend**
+
+Toast Notifications:
+
+- **Archivo:** `web/src/lib/context/ToastContext.tsx`  
+  **Cambios:** `Provider + hook useToast` con auto-dismiss en 4s
+- **Archivo:** `web/src/components/ui/Toast.tsx`  
+  **Cambios:** `ToastContainer` con 4 tipos (`success/error/warning/info`)
+- **Archivo:** `providers.tsx`  
+  **Cambios:** Integrado `ToastProvider + ToastContainer`
+
+Skeleton Components:
+
+- **Archivo:** `web/src/components/ui/Skeleton.tsx`  
+  **Cambios:** `SkeletonLine`, `SkeletonTable`, `SkeletonCard`, `SkeletonDetail`
+
+Mobile Responsive:
+
+- **Archivo:** `layout.tsx`  
+  **Cambios:** Overlay móvil + sidebar con slide-in
+- **Archivo:** `Sidebar.tsx`  
+  **Cambios:** Botón de cierre en móvil, cierra al navegar
+- **Archivo:** `Header.tsx`  
+  **Cambios:** Hamburger visible solo en móvil (`md:hidden`)
+
+Páginas actualizadas:
+
+- Todos los `alert()` reemplazados por `showToast()`
+- Todos los "Cargando..." reemplazados por `<SkeletonTable>` o `<SkeletonDetail>`
+- Empty states con ícono + mensaje + CTA en: clientes, facturas, gastos
+- Toast de éxito en: crear/editar/eliminar clientes, facturas, gastos; cambios de estado; adjuntar/eliminar archivos
+- Columnas de tabla ocultas en pantallas pequeñas (`hidden sm:table-cell`, `hidden md:table-cell`)

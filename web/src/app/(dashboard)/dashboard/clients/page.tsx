@@ -3,16 +3,18 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useOrganization } from "@/lib/context/OrganizationContext";
+import { useToast } from "@/lib/context/ToastContext";
 import { Client, ClientsPage } from "@/types/client";
 import * as clientsApi from "@/lib/api/clients";
+import { SkeletonTable } from "@/components/ui/Skeleton";
 
 export default function ClientsListPage() {
   const { currentOrg } = useOrganization();
+  const { showToast } = useToast();
   const [data, setData] = useState<ClientsPage | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [error, setError] = useState("");
 
   // Modal state
   const [showForm, setShowForm] = useState(false);
@@ -32,7 +34,6 @@ export default function ClientsListPage() {
   const loadClients = useCallback(async () => {
     if (!currentOrg) return;
     setIsLoading(true);
-    setError("");
     try {
       const result = await clientsApi.listClients(currentOrg.id, {
         page,
@@ -40,11 +41,14 @@ export default function ClientsListPage() {
       });
       setData(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al cargar");
+      showToast(
+        err instanceof Error ? err.message : "Error al cargar clientes",
+        "error"
+      );
     } finally {
       setIsLoading(false);
     }
-  }, [currentOrg, page, search]);
+  }, [currentOrg, page, search, showToast]);
 
   useEffect(() => {
     loadClients();
@@ -96,8 +100,10 @@ export default function ClientsListPage() {
       };
       if (editingClient) {
         await clientsApi.updateClient(currentOrg.id, editingClient.id, payload);
+        showToast("Cliente actualizado correctamente", "success");
       } else {
         await clientsApi.createClient(currentOrg.id, payload);
+        showToast("Cliente creado correctamente", "success");
       }
       setShowForm(false);
       await loadClients();
@@ -113,10 +119,14 @@ export default function ClientsListPage() {
     setIsDeleting(true);
     try {
       await clientsApi.deleteClient(currentOrg.id, deletingClient.id);
+      showToast("Cliente eliminado", "success");
       setDeletingClient(null);
       await loadClients();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Error al eliminar");
+      showToast(
+        err instanceof Error ? err.message : "Error al eliminar",
+        "error"
+      );
     } finally {
       setIsDeleting(false);
     }
@@ -156,16 +166,9 @@ export default function ClientsListPage() {
         />
       </div>
 
-      {/* Error */}
-      {error && (
-        <div className="mb-4 rounded-lg bg-danger-50 p-3 text-sm text-danger">
-          {error}
-        </div>
-      )}
-
       {/* Table */}
       {isLoading ? (
-        <p className="text-default-500">Cargando...</p>
+        <SkeletonTable rows={5} cols={5} />
       ) : data && data.items.length > 0 ? (
         <>
           <div className="overflow-x-auto">
@@ -173,9 +176,9 @@ export default function ClientsListPage() {
               <thead>
                 <tr className="border-b border-default-200 text-left">
                   <th className="pb-2 pr-4 font-medium text-default-600">Nombre</th>
-                  <th className="pb-2 pr-4 font-medium text-default-600">Empresa</th>
-                  <th className="pb-2 pr-4 font-medium text-default-600">Email</th>
-                  <th className="pb-2 pr-4 font-medium text-default-600">Teléfono</th>
+                  <th className="pb-2 pr-4 font-medium text-default-600 hidden sm:table-cell">Empresa</th>
+                  <th className="pb-2 pr-4 font-medium text-default-600 hidden md:table-cell">Email</th>
+                  <th className="pb-2 pr-4 font-medium text-default-600 hidden lg:table-cell">Teléfono</th>
                   <th className="pb-2 font-medium text-default-600">Acciones</th>
                 </tr>
               </thead>
@@ -193,13 +196,13 @@ export default function ClientsListPage() {
                         {client.name}
                       </Link>
                     </td>
-                    <td className="py-3 pr-4 text-default-500">
+                    <td className="py-3 pr-4 text-default-500 hidden sm:table-cell">
                       {client.company || "-"}
                     </td>
-                    <td className="py-3 pr-4 text-default-500">
+                    <td className="py-3 pr-4 text-default-500 hidden md:table-cell">
                       {client.email || "-"}
                     </td>
-                    <td className="py-3 pr-4 text-default-500">
+                    <td className="py-3 pr-4 text-default-500 hidden lg:table-cell">
                       {client.phone || "-"}
                     </td>
                     <td className="py-3">
@@ -228,7 +231,7 @@ export default function ClientsListPage() {
 
           {/* Pagination */}
           {data.totalPages > 1 && (
-            <div className="mt-4 flex items-center gap-2">
+            <div className="mt-4 flex items-center gap-2 flex-wrap">
               <button
                 type="button"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -252,14 +255,31 @@ export default function ClientsListPage() {
           )}
         </>
       ) : (
-        <p className="text-default-500">
-          {search ? "No se encontraron clientes." : "No hay clientes aún. Creá el primero."}
-        </p>
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="text-5xl mb-4">👥</div>
+          <h3 className="text-lg font-semibold mb-1">
+            {search ? "Sin resultados" : "Todavía no hay clientes"}
+          </h3>
+          <p className="text-sm text-default-500 mb-4">
+            {search
+              ? "No se encontraron clientes con ese criterio de búsqueda."
+              : "Empezá agregando tu primer cliente."}
+          </p>
+          {!search && (
+            <button
+              type="button"
+              onClick={openCreateForm}
+              className="rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-primary/90"
+            >
+              + Nuevo cliente
+            </button>
+          )}
+        </div>
       )}
 
       {/* Create/Edit Modal */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-lg rounded-lg bg-white p-6 shadow-lg">
             <h2 className="text-lg font-semibold mb-4">
               {editingClient ? "Editar cliente" : "Nuevo cliente"}
@@ -293,7 +313,7 @@ export default function ClientsListPage() {
                   className="w-full rounded-md border border-default-300 px-3 py-2 text-sm"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium mb-1">Email</label>
                   <input
@@ -349,7 +369,7 @@ export default function ClientsListPage() {
 
       {/* Delete Confirm Modal */}
       {deletingClient && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-lg">
             <h2 className="text-lg font-semibold mb-2">Eliminar cliente</h2>
             <p className="text-sm text-default-500 mb-4">

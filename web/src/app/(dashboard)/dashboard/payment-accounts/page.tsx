@@ -9,6 +9,7 @@ import {
   CreatePaymentAccountData,
 } from "@/types/payment-account";
 import * as api from "@/lib/api/payment-accounts";
+import { useToast } from "@/lib/context/ToastContext";
 
 const ACCOUNT_TYPES: PaymentAccountType[] = [
   "BANK",
@@ -27,6 +28,7 @@ const EMPTY_FORM = {
 
 export default function PaymentAccountsPage() {
   const { currentOrg } = useOrganization();
+  const { showToast } = useToast();
 
   // ── Mis cuentas ───────────────────────────────────────────────────────────
   const [accounts, setAccounts] = useState<PaymentAccount[]>([]);
@@ -149,7 +151,10 @@ export default function PaymentAccountsPage() {
       await loadAccounts();
       if (currentOrg) await loadOrgAccounts();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Error al eliminar");
+      showToast(
+        err instanceof Error ? err.message : "Error al eliminar",
+        "error"
+      );
     } finally {
       setIsDeleting(false);
     }
@@ -219,7 +224,11 @@ export default function PaymentAccountsPage() {
         <h2 className="text-lg font-semibold mb-3">Mis cuentas</h2>
 
         {isLoadingAccounts ? (
-          <p className="text-default-500 text-sm">Cargando...</p>
+          <div className="space-y-2">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-12 rounded-lg bg-default-200 animate-pulse" />
+            ))}
+          </div>
         ) : accounts.length === 0 ? (
           <p className="text-default-500 text-sm">
             No tenés cuentas aún. Creá la primera.
@@ -330,7 +339,7 @@ export default function PaymentAccountsPage() {
           </p>
 
           {isLoadingOrgAccounts ? (
-            <p className="text-default-500 text-sm">Cargando...</p>
+            <div className="h-12 rounded-lg bg-default-200 animate-pulse" />
           ) : orgAccounts.length === 0 ? (
             <p className="text-default-500 text-sm">
               Ninguna cuenta vinculada. Vinculá una desde la lista de arriba.

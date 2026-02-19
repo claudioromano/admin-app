@@ -42,6 +42,12 @@ export class OrganizationsController {
     return this.organizationsService.findById(id, user.id);
   }
 
+  @Get(':id/summary')
+  @UseGuards(OrganizationRoleGuard)
+  getSummary(@Param('id') id: string) {
+    return this.organizationsService.getSummary(id);
+  }
+
   @Patch(':id')
   @UseGuards(OrganizationRoleGuard)
   @Roles('ADMIN' as any)

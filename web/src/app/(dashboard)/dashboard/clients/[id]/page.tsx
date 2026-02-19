@@ -4,13 +4,16 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useOrganization } from "@/lib/context/OrganizationContext";
+import { useToast } from "@/lib/context/ToastContext";
 import { Client } from "@/types/client";
 import * as clientsApi from "@/lib/api/clients";
+import { SkeletonDetail } from "@/components/ui/Skeleton";
 
 export default function ClientDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { currentOrg } = useOrganization();
+  const { showToast } = useToast();
   const clientId = params.id as string;
 
   const [client, setClient] = useState<Client | null>(null);
@@ -73,6 +76,7 @@ export default function ClientDetailPage() {
       });
       setClient(updated);
       setIsEditing(false);
+      showToast("Cliente actualizado", "success");
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Error al guardar");
     } finally {
@@ -87,7 +91,10 @@ export default function ClientDetailPage() {
       await clientsApi.deleteClient(currentOrg.id, client.id);
       router.push("/dashboard/clients");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Error al eliminar");
+      showToast(
+        err instanceof Error ? err.message : "Error al eliminar",
+        "error"
+      );
       setIsDeleting(false);
     }
   };
@@ -97,7 +104,7 @@ export default function ClientDetailPage() {
   }
 
   if (isLoading) {
-    return <p className="text-default-500">Cargando...</p>;
+    return <SkeletonDetail />;
   }
 
   if (error || !client) {
@@ -126,7 +133,7 @@ export default function ClientDetailPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <h1 className="text-2xl font-bold">{client.name}</h1>
         <div className="flex gap-2">
           <button
@@ -181,7 +188,7 @@ export default function ClientDetailPage() {
 
       {/* Edit Modal */}
       {isEditing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-lg rounded-lg bg-white p-6 shadow-lg">
             <h2 className="text-lg font-semibold mb-4">Editar cliente</h2>
             {formError && (
@@ -211,7 +218,7 @@ export default function ClientDetailPage() {
                   className="w-full rounded-md border border-default-300 px-3 py-2 text-sm"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium mb-1">Email</label>
                   <input
@@ -264,7 +271,7 @@ export default function ClientDetailPage() {
 
       {/* Delete Confirm Modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-lg">
             <h2 className="text-lg font-semibold mb-2">Eliminar cliente</h2>
             <p className="text-sm text-default-500 mb-4">

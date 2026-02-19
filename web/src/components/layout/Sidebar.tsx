@@ -13,17 +13,33 @@ const navItems = [
   { href: "/dashboard/settings", label: "Configuración", icon: "⚙️" },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  onClose?: () => void;
+}
+
+export function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname();
 
   return (
     <aside className="flex h-full w-64 flex-col border-r border-divider bg-content1">
-      <div className="p-4 border-b border-divider">
-        <h1 className="text-lg font-bold mb-3">AdminApp</h1>
-        <OrgSelector />
+      <div className="p-4 border-b border-divider flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-lg font-bold mb-3">AdminApp</h1>
+          <OrgSelector />
+        </div>
+        {/* Close button – mobile only */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="md:hidden mt-1 shrink-0 text-default-400 hover:text-default-700 transition-colors"
+            aria-label="Cerrar menú"
+          >
+            ✕
+          </button>
+        )}
       </div>
 
-      <nav className="flex-1 p-2">
+      <nav className="flex-1 p-2 overflow-y-auto">
         <ul className="flex flex-col gap-1">
           {navItems.map((item) => {
             const isActive =
@@ -34,6 +50,7 @@ export function Sidebar() {
               <li key={item.href}>
                 <Link
                   href={item.href}
+                  onClick={onClose}
                   className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
                     isActive
                       ? "bg-primary/10 text-primary font-medium"
