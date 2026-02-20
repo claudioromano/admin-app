@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Card, CardHeader, CardBody, Input, Button } from "@heroui/react";
+import { useRouter, usePathname } from "next/navigation";
+import { Card, CardHeader, CardBody, Input, Button, Tabs, Tab } from "@heroui/react";
 import { useAuth } from "@/lib/context/AuthContext";
 import Link from "next/link";
 
@@ -14,6 +14,8 @@ export default function RegisterPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { register } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+  const activeTab = pathname === "/register" ? "register" : "login";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,8 +33,23 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <div className="flex min-h-screen items-center justify-center p-4 bg-stone-200">
+      <div className="w-full max-w-lg">
+        <div className="flex justify-center p-4">
+          <Tabs
+            key="views"
+            aria-label="Ingresar / Registrarse"
+            size="sm"
+            radius="lg"
+            selectedKey={activeTab}
+            classNames={{"tabList" : 'bg-stone-300'}}
+            onSelectionChange={(key) => router.push(`/${key}`)}
+          >
+            <Tab key="login" title="Ingresar" />
+            <Tab key="register" title="Registrarse" />
+          </Tabs>
+        </div>
+        <Card className="w-full">
         <CardHeader className="flex flex-col gap-1 px-6 pt-6">
           <h1 className="text-2xl font-bold">Crear cuenta</h1>
           <p className="text-sm text-default-500">
@@ -74,7 +91,7 @@ export default function RegisterPage() {
               type="submit"
               color="primary"
               isLoading={isSubmitting}
-              className="mt-2"
+              className="mt-2 bg-black text-white"
             >
               Registrarse
             </Button>
@@ -86,7 +103,8 @@ export default function RegisterPage() {
             </p>
           </form>
         </CardBody>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

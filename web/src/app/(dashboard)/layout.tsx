@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Spinner } from "@heroui/react";
 import { useAuth } from "@/lib/context/AuthContext";
 import { useOrganization } from "@/lib/context/OrganizationContext";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { Header } from "@/components/layout/Header";
 
 export default function DashboardLayout({
   children,
@@ -17,8 +16,15 @@ export default function DashboardLayout({
   const { isLoading: orgLoading } = useOrganization();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isLoading = authLoading || orgLoading;
 
-  if (authLoading || orgLoading) {
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.replace("/login");
+    }
+  }, [isLoading, user, router]);
+
+  if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Spinner size="lg" />
@@ -27,7 +33,6 @@ export default function DashboardLayout({
   }
 
   if (!user) {
-    router.push("/login");
     return null;
   }
 
@@ -51,7 +56,18 @@ export default function DashboardLayout({
       </div>
 
       <div className="flex flex-1 flex-col overflow-hidden min-w-0">
-        <Header onMenuClick={() => setSidebarOpen(true)} />
+        {/* Mobile hamburger bar */}
+        <div className="flex items-center h-12 px-4 md:hidden border-b border-divider bg-content1 shrink-0">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="flex flex-col gap-1 p-1"
+            aria-label="Abrir menú"
+          >
+            <span className="block h-0.5 w-5 bg-default-600" />
+            <span className="block h-0.5 w-5 bg-default-600" />
+            <span className="block h-0.5 w-5 bg-default-600" />
+          </button>
+        </div>
         <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
       </div>
     </div>

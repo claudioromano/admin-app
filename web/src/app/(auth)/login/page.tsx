@@ -1,18 +1,34 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Card, CardHeader, CardBody, Input, Button } from "@heroui/react";
+import { useRouter, usePathname } from "next/navigation";
+
+
 import { useAuth } from "@/lib/context/AuthContext";
 import Link from "next/link";
+
+import {
+  Tabs,
+  Tab,
+  Spinner,
+  Image,
+  Button,
+  Card, 
+  CardHeader, 
+  CardBody, 
+  Input,
+} from "@heroui/react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
   const { login } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+  const activeTab = pathname === "/register" ? "register" : "login";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,8 +46,34 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <div className="flex min-h-screen items-center justify-center p-4 bg-stone-200">
+      <div className="w-full max-w-lg">
+        <div className="flex justify-center p-4">
+          <Tabs
+            key="views"
+            aria-label="Ingresar / Registrarse"
+            size="sm"
+            radius="lg"
+            classNames={{"tabList" : 'bg-stone-300'}}
+            selectedKey={activeTab}
+            onSelectionChange={(key) => router.push(`/${key}`)}
+          >
+            <Tab key="login" title={
+              <>
+                {/* <FontAwesomeIcon icon={faBars} className='mr-2' /> */}
+                Ingresar
+              </>
+            } />
+            <Tab key="register" title={
+              <>
+                {/* <FontAwesomeIcon icon={faUser} className='mr-2' /> */}
+                Registrarse
+              </>
+            } />
+          </Tabs>
+        </div>
+
+        <Card className="w-full">
         <CardHeader className="flex flex-col gap-1 px-6 pt-6">
           <h1 className="text-2xl font-bold">Iniciar sesión</h1>
           <p className="text-sm text-default-500">
@@ -63,9 +105,9 @@ export default function LoginPage() {
             />
             <Button
               type="submit"
-              color="primary"
+              
               isLoading={isSubmitting}
-              className="mt-2"
+              className="mt-2 bg-black text-white"
             >
               Iniciar sesión
             </Button>
@@ -78,6 +120,8 @@ export default function LoginPage() {
           </form>
         </CardBody>
       </Card>
+      </div>
+      
     </div>
   );
 }

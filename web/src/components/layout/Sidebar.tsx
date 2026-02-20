@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { Button } from "@heroui/react";
+import { useAuth } from "@/lib/context/AuthContext";
 import { OrgSelector } from "./OrgSelector";
 
 const navItems = [
@@ -19,6 +21,13 @@ interface SidebarProps {
 
 export function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    router.push("/login");
+  };
 
   return (
     <aside className="flex h-full w-64 flex-col border-r border-divider bg-content1">
@@ -65,6 +74,20 @@ export function Sidebar({ onClose }: SidebarProps) {
           })}
         </ul>
       </nav>
+
+      {/* User section */}
+      <div className="border-t border-divider p-3 flex flex-col gap-2">
+        <span className="text-xs text-default-500 truncate px-1">{user?.name}</span>
+        <Button
+          color="danger"
+          variant="flat"
+          size="sm"
+          fullWidth
+          onPress={handleLogout}
+        >
+          Cerrar sesión
+        </Button>
+      </div>
     </aside>
   );
 }
